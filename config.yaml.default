@@ -1,0 +1,57 @@
+gradescope:
+  gs_login: 'a@b.com'
+  gs_pwd: 'letmein123!'
+  use_threads: false
+  show: true
+  semesters:
+  - Fall 2023
+  enabled: true
+
+canvas:
+  api_key: 123456
+  site: canvas.edu
+  course_ids:
+  - 123
+  - 456
+  show: true
+  enabled: true
+  active_only: false
+  include:
+  - students
+  - assignments
+  - summaries
+  - submissions
+
+rubric:
+  1234:
+    midterm1:
+      substring: Midterm 1
+      points: 15
+      max_score: 80
+      max_extra_credit: 0
+      source: Gradescope
+    midterm2:
+      substring: Midterm 2
+      points: 15
+      max_score: 80
+      max_extra_credit: 0
+      source: Gradescope
+    homeworks:
+      substring: Homework
+      points: 40
+      source: Gradescope
+    quizzes:
+      substring: review
+      points: 2
+      source: Canvas
+    proposal:
+      substring: Project Proposal
+      points: 2
+      source: Gradescope
+    project:
+      substring: Final Project
+      points: 28
+      source: gradescope
+    ec:
+      substring: Extra Credit
+      points: 1
