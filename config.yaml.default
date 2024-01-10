@@ -1,3 +1,5 @@
+db: ../dashboard.db
+
 gradescope:
   gs_login: 'a@b.com'
   gs_pwd: 'letmein123!'
