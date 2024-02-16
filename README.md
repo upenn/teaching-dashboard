@@ -17,7 +17,7 @@ This library requires a bit of setup to ensure it crawls Gradescope and Canvas a
 
 ### Pre-configuration
 
-You'll need to separately install the [Gradescope-Canvas Crawler] project, which shares some basic functionality (and can share the same `config.yaml` configuration file, using different keys).  Follow the instructions there to set up access to Canvas and Gradescope.  In the `config.yaml` file for that project, set the `db` key to a database path that will be shared between the crawler (that project) and the dashboard (this project).
+You'll need to separately install the [Gradescope-Canvas Crawler](https://github.com/upenn/gradescope-canvas-crawler) project, which shares some basic functionality (and can share the same `config.yaml` configuration file, using different keys).  Follow the instructions there to set up access to Canvas and Gradescope.  In the `config.yaml` file for that project, set the `db` key to a database path that will be shared between the crawler (that project) and the dashboard (this project).
 
 For the dashboard, you will want to edit the corresponding `config.yaml` (you can copy from `config.yaml.default` here) and make sure the `db` matches the same file as the crawler's output.  You may also want to update the rubric (below)
 
