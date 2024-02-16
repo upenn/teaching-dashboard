@@ -276,7 +276,10 @@ def assign_grades(grade_totals: pd.DataFrame) -> None:
     fig.show()
 
     st.pyplot(fig)
-    st.dataframe(grade_totals[['student','student_id','email','Total Points','Comments','grade']].sort_values(by=['Total Points','student']), use_container_width=True,hide_index=True)
+    if 'Comments' in grade_totals.columns:
+        st.dataframe(grade_totals[['student','student_id','email','Total Points','Comments','grade']].sort_values(by=['Total Points','student']), use_container_width=True,hide_index=True)
+    else:
+        st.dataframe(grade_totals[['student','student_id','email','Total Points','grade']].sort_values(by=['Total Points','student']), use_container_width=True,hide_index=True)
 
 
 def display_hw_totals(course: int = None) -> None:

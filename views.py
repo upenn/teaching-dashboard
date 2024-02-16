@@ -102,6 +102,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
             students2 = students[students['canvas_course_id'] == course['canvas_course_id']].drop(columns=['gs_course_id', 'canvas_course_id'], axis=1)
             
             students = pd.concat([students1, students2]).drop_duplicates()
+            students.fillna(0, inplace=True)
             students = students.astype({'student_id': int})
             for group in config['rubric'][course_id]:
                 if group == 'spreadsheet':
@@ -116,9 +117,10 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                     assigns = assigns[assigns['source'].apply(lambda x: x.upper() == str(config['rubric'][course_id][group]['source']).upper())]
 
                 # Now we want to group by student and email, and sum up all assignments in this group
-                assigns = assigns.groupby(by=['student', 'email', 'student_id']).\
-                        sum().reset_index()\
-                        [['student', 'Total Score', "Max Points", 'email', 'student_id']]
+                if len(assigns):
+                    assigns = assigns.groupby(by=['student', 'email', 'student_id']).\
+                            sum().reset_index()\
+                            [['student', 'Total Score', "Max Points", 'email', 'student_id']]
                 
                 if len(assigns):
                     assigns['Max Points'] = assigns['Max Points'].apply(lambda x: adjust_max(x, config['rubric'][course_id][group]))
@@ -150,14 +152,18 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                     group_name = group_name[0:-1] + ' ' + group_name[-1]
 
                 if 'source' in config['rubric'][course_id][group]:
-                    output("{} ({})".format(group_name, config['rubric'][course_id][group]["source"]), 'Total Score', 'Max Points', assigns.drop(columns=['email']))
+                    if len(assigns):
+                        assigns2 = assigns.drop(columns=['email'])
+                    else:
+                        assigns2 = assigns
+                    output("{} ({})".format(group_name, config['rubric'][course_id][group]["source"]), 'Total Score', 'Max Points', assigns2)
                 else:
                     output(group_name, 'Total Score', 'Max Points', assigns.drop(columns=['email']))
 
             # Look for optional file with additional fields
             ss = 'more-fields-{}.xlsx'.format(course_id)
-            if "spreadsheet" in config['rubric']['course_id']['spreadsheet']:
-                ss = config['rubric']['course_id']['spreadsheet']
+            if "spreadsheet" in config['rubric'][course_id]:
+                ss = config['rubric'][course_id]['spreadsheet']
 
             if path.isfile(ss):
                 st.markdown ("## Additional Fields from Excel")
