@@ -1,7 +1,7 @@
 arrow==1.2.2
 attrs==22.1.0
 beautifulsoup4==4.11.1
-black==22.8.0
+black==24.3.0
 bs4==0.0.1
 certifi==2023.7.22
 charset-normalizer==2.1.1
