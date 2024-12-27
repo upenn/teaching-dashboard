@@ -168,7 +168,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
 
             if path.isfile(ss):
                 st.markdown ("## Additional Fields from Excel")
-                more_fields = pd.read_excel('more-fields-{}.xlsx'.format(course_id)).drop(columns=['First Name', 'Last Name','Email'])
+                more_fields = pd.read_excel(ss).drop(columns=['First Name', 'Last Name','Email'])
                 
                 students = students.merge(more_fields, left_on='student_id', right_on='SID', how='left').drop('SID', axis=1)
                 for field in more_fields.columns:

@@ -45,4 +45,5 @@ duckdb
 streamlit-aggrid
 matplotlib
 seaborn
+openpyxl
 
