@@ -64,12 +64,19 @@ def get_extensions() -> pd.DataFrame:
     # TODO: how do we merge homework extensions??
     if include_gradescope_data:
         # duelate = 'Release (' + timezone + ')Due (' + timezone + ')'
-        duelate = 'Release ({})Due ({})'.format(timezone, timezone)
+        duelate = 'Late Due ({})'.format(timezone)
         release = 'Release ({})'.format(timezone)
         due = 'Due ({})'.format(timezone)
         late = 'Late Due ({})'.format(timezone)
-        extensions = get_gs_extensions().\
-            drop(columns=['Edit','Section', 'First & Last Name Swap', 'Last, First Name Swap', 'Sections', duelate, release, 'Time Limit','Extension Type'])
+        extensions = get_gs_extensions()
+        
+        print(extensions.columns)
+        
+        extensions = extensions.\
+            drop(columns=['Edit', 
+                          #'Section', 
+                          'First & Last Name Swap', 'Last, First Name Swap', 'Sections', #duelate, 
+                          release, 'Time Limit','Extension Type'])
 
         extensions['Due'] = extensions[due].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)
         extensions['Late'] = extensions[late].apply(lambda x: datetime.strptime(x, '%b %d %Y %I:%M %p') if x != '(no change)' and x != 'No late due date' and x != '--' and not pd.isnull(x) else None)

@@ -291,6 +291,8 @@ def display_hw_totals(course: int = None) -> None:
     scores = get_assignments_and_submissions()
     if course is not None:
         scores = scores[scores['canvas_course_id'] == course]
+        
+    scores.drop(columns=['Submission Time','due'], inplace=True, errors='ignore')
     scores = scores.\
                             groupby(by=['email','student']).sum()['Total Score'].reset_index().\
                             sort_values(by=['Total Score'])

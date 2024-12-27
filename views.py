@@ -115,7 +115,8 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                 # If we have filtered to one source (Gradescope or Canvas), make sure we eliminate any others
                 if 'source' in config['rubric'][course_id][group]:
                     assigns = assigns[assigns['source'].apply(lambda x: x.upper() == str(config['rubric'][course_id][group]['source']).upper())]
-
+                    
+                assigns.drop(columns=['Submission Time','due'], inplace=True, errors='ignore')
                 # Now we want to group by student and email, and sum up all assignments in this group
                 if len(assigns):
                     assigns = assigns.groupby(by=['student', 'email', 'student_id']).\
@@ -140,7 +141,7 @@ def get_scores_in_rubric(output: callable, course:pd.Series = None) -> list[pd.D
                     students[group + '_max'] = None
 
                 if len(students) > total:
-                    st.write("Error here, grew number of students")
+                    st.write("Error here, grew number of students by {}".format(len(students)-total))
                     st.dataframe(assigns)
                     total = len(students)
 
