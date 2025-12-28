@@ -30,6 +30,7 @@ import pandas as pd
 #from sqlalchemy.sql import text
 from datetime import datetime
 import duckdb
+import streamlit as st
 
 include_gradescope_data = True
 include_canvas_data = True
@@ -67,32 +68,35 @@ def get_aligned_students(include_gs: bool, include_canvas: bool) -> pd.DataFrame
     with duckdb.connect(db_file) as connection:
         if include_gs and include_canvas:
             # SQLite does not support full outerjoin
-            students = connection.execute("""select cast(sid as int) as gs_student_id, cast(student_id as int) as student_id, 
+            students = connection.execute("""select try_cast(sid as int) as gs_student_id, try_cast(student_id as int) as student_id, 
                                            case when gs.name is not null then gs.name else c.name end as student, 
-                                           case when emails is not null then emails else c.email end as email, cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, c.id as canvas_sid
-                                           from gs_students gs join gs_courses crs on gs.course_id=crs.cid left join canvas_students c on cast(student_id as int) = cast(sis_user_id as int)
+                                           case when emails is not null then emails else c.email end as email, try_cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, c.id as canvas_sid
+                                           from gs_students gs join gs_courses crs on gs.course_id=crs.cid left join canvas_students c on try_cast(student_id as int) = try_cast(sis_user_id as int)
                                            where role like '%STUDENT'
                                            union
-                                           select cast(null as int) as gs_student_id, cast(c.sis_user_id as int) as student_id, c.name,
+                                           select try_cast(null as int) as gs_student_id, try_cast(c.sis_user_id as int) as student_id, c.name,
                                            c.email as email, null as gs_user_id, null as gs_course_id, c.course_id as canvas_course_id, c.id as canvas_sid
                                            from canvas_students c
-                                           where not exists (select * from gs_students where cast(student_id as int) = cast(c.sis_user_id as int))
+                                           where not exists (select * from gs_students where try_cast(student_id as int) = try_cast(c.sis_user_id as int))
                                            """).df()
         elif include_gs:
-            students = connection.execute("""select cast(sid as int) as gs_student_id, cast(student_id as int) as student_id, gs.name as student, emails as email, cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, null as canvas_sid
-                                           from gs_students gs join gs_courses crs on cast(gs.course_id as int)=cast(crs.cid as int)
+            students = connection.execute("""select try_cast(sid as int) as gs_student_id, try_cast(student_id as int) as student_id, gs.name as student, emails as email, try_cast(user_id as int) as gs_user_id, gs.course_id as gs_course_id, lti as canvas_course_id, null as canvas_sid
+                                           from gs_students gs join gs_courses crs on try_cast(gs.course_id as int)=try_cast(crs.cid as int)
                                            where role like '%STUDENT'
                                            """).df()
         else:
-            students = connection.execute("""select null as gs_student_id, cast(sis_user_id as int) as student_id,name as student, email, null as gs_user_id, null as gs_course_id, course_id as canvas_course_id, c.id as canvas_sid
+            students = connection.execute("""select null as gs_student_id, try_cast(sis_user_id as int) as student_id,name as student, email, null as gs_user_id, null as gs_course_id, course_id as canvas_course_id, c.id as canvas_sid
                                     from canvas_students c""").df()
 
+        # st.write(students)
         return students
 
 def get_gs_courses() -> pd.DataFrame:
+    # st.write(connection.execute("SELECT * FROM gs_courses").df())
     return connection.execute("SELECT * FROM gs_courses").df()
 
 def get_canvas_courses() -> pd.DataFrame:
+    # st.write(connection.execute("SELECT * FROM canvas_courses").df())
     return connection.execute("SELECT * FROM canvas_courses").df()
     # return pd.read_csv('data/canvas_courses.csv')
 
@@ -115,12 +119,15 @@ def get_aligned_courses(include_gs: bool, include_canvas: bool) -> pd.DataFrame:
         courses['start_at'] = courses['start_at'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
         courses['end_at'] = courses['end_at'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
         
+        # st.write(courses)
         return courses
 
 def get_gs_assignments() -> pd.DataFrame:
+    # st.write(connection.execute("SELECT * FROM gs_assignments").df())
     return connection.execute("SELECT * FROM gs_assignments").df()
 
 def get_canvas_assignments() -> pd.DataFrame:
+    # st.write(connection.execute("SELECT * FROM canvas_assignments").df())
     return connection.execute("SELECT * FROM canvas_assignments").df()
     # return pd.read_csv('data/canvas_assignments.csv')
 
@@ -144,44 +151,46 @@ def get_aligned_assignments(include_gs: bool, include_canvas: bool) -> pd.DataFr
         assignments['due'] = assignments['due'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
         assignments['assigned'] = assignments['assigned'].apply(lambda x: datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x) else None)
 
+        # st.write(assignments)
         return assignments
 
 def get_gs_submissions() -> pd.DataFrame:
+    # st.write(connection.execute("SELECT * FROM gs_submissions").df())
     return connection.execute("SELECT * FROM gs_submissions").df()
 
 def get_canvas_submissions() -> pd.DataFrame:
+    # st.write(connection.execute("SELECT * FROM canvas_submissions").df())
     return connection.execute("SELECT * FROM canvas_submissions").df()
     # return pd.read_csv('data/canvas_submissions.csv', low_memory=False)
 
 def get_aligned_submissions(include_gs: bool, include_canvas: bool) -> pd.DataFrame:
     with duckdb.connect(db_file) as connection:
         if include_gs and include_canvas:
-            # student, email, [Total Score], [Max Points], Status, gs_submission_id, canvas_submission_id, [Submission Time], [Lateness (H:M:S)], student_id, 
-            # gs_assignment_id, canvas_assignment_id, gs_student_id, gs_user_id, gs_course_id, canvas_course_id
             submissions = connection.execute("""select "First Name" || ' ' || "Last Name" as student, Email as email, "Total Score", "Max Points", Status, 
                                                "Submission ID" as gs_submission_id, null as canvas_submission_id, "Submission Time", null as submitted_at, due,
-                                               cast(st.student_id as int) as student_id, assign_id as gs_assignment_id, null as canvas_assignment_id, gsa.name,
-                                               cast(st.sid as int) as gs_student_id, user_id as gs_user_id,gs.course_id as gs_course_id,gsc.lti as canvas_course_id, 
+                                               try_cast(st.student_id as int) as student_id, assign_id as gs_assignment_id, null as canvas_assignment_id, gsa.name,
+                                               try_cast(st.sid as int) as gs_student_id, user_id as gs_user_id,gs.course_id as gs_course_id,gsc.lti as canvas_course_id, 
                                                case when gs."Lateness (H:M:S)" > '00:00:00' then true else false end as late, 0 as points_deducted, gsc.shortname as course_name, 'Gradescope' as source
-                                               from gs_submissions gs left join gs_students st on gs.SID = cast(st.student_id as int) left join gs_courses gsc on gs.course_id=gsc.cid left join gs_assignments gsa on gs.assign_id = gsa.id
+                                               from gs_submissions gs left join gs_students st on try_cast(gs.SID as int) = try_cast(st.student_id as int) left join gs_courses gsc on gs.course_id=gsc.cid left join gs_assignments gsa on gs.assign_id = gsa.id
+                                               WHERE try_cast(gs.SID as int) is not null and st.student_id is not null and st.role like '%STUDENT'
                                               union
                                                select st.name as student, st.email, score as "Total Score", a.points_possible as "Max Points", 
                                                case when graded_at is not null then 'Graded' when submitted_at is not null then 'Submitted' else 'Missing' end as Status, 
                                                null as gs_submission_id, s.id as canvas_submission_id, null as "Submission Time", submitted_at, a.due_at as due,
-                                               cast(sis_user_id as int) as student_id, null as gs_assignment_id, assignment_id as canvas_assignment_id, a.name, cast(gst.sid as int) as gs_student_id, 
+                                               try_cast(sis_user_id as int) as student_id, null as gs_assignment_id, assignment_id as canvas_assignment_id, a.name, try_cast(gst.sid as int) as gs_student_id, 
                                                gst.user_id as gs_user_id, gsc.cid as gs_course_id,a.course_id as canvas_course_id, late, points_deducted, gsc.shortname as course_name, 'Canvas' as source
                                                from canvas_submissions s join canvas_students st on s.user_id = st.id join canvas_assignments a on s.assignment_id = a.id 
-                                               left join gs_students gst on cast(gst.student_id as int) = sis_user_id left join gs_courses gsc on gsc.lti = a.course_id
+                                               left join gs_students gst on try_cast(gst.student_id as int) = sis_user_id left join gs_courses gsc on gsc.lti = a.course_id
                                                """).df()
         elif include_gs:
             # student, email, [Total Score], [Max Points], Status, gs_submission_id, canvas_submission_id, [Submission Time], [Lateness (H:M:S)], student_id, 
             # gs_assignment_id, canvas_assignment_id, gs_student_id, gs_user_id, gs_course_id, canvas_course_id
             submissions = connection.execute("""select "First Name" || ' ' || "Last Name" as student, Email as email, "Total Score", "Max Points", Status, 
                                                "Submission ID" as gs_submission_id, null as canvas_submission_id, "Submission Time", null as submitted_at, due,
-                                               cast(st.student_id as int) as student_id, assign_id as gs_assignment_id, null as canvas_assignment_id, gsa.name,
-                                               cast(st.sid as int) as gs_student_id, user_id as gs_user_id,gs.course_id as gs_course_id,gsc.lti as canvas_course_id, 
+                                               try_cast(st.student_id as int) as student_id, assign_id as gs_assignment_id, null as canvas_assignment_id, gsa.name,
+                                               try_cast(st.sid as int) as gs_student_id, user_id as gs_user_id,gs.course_id as gs_course_id,gsc.lti as canvas_course_id, 
                                                case when gs."Lateness (H:M:S)" > "00:00:00" then true else false end as late, 0 as points_deducted, gsc.shortname as course_name, 'Gradescope' as source
-                                               from gs_submissions gs left join gs_students st on gs.SID = cast(st.student_id as int) left join gs_courses gsc on gs.course_id=gsc.cid left join gs_assignments gsa on gs.assign_id = gsa.id
+                                               from gs_submissions gs left join gs_students st on gs.SID = try_cast(st.student_id as int) left join gs_courses gsc on gs.course_id=gsc.cid left join gs_assignments gsa on gs.assign_id = gsa.id
                                     """).df()
         else:
             # student, email, [Total Score], [Max Points], Status, gs_submission_id, canvas_submission_id, [Submission Time], [Lateness (H:M:S)], student_id,
@@ -189,10 +198,11 @@ def get_aligned_submissions(include_gs: bool, include_canvas: bool) -> pd.DataFr
             submissions = connection.execute("""select st.name as student, st.email, score as "Total Score", a.points_possible as "Max Points", 
                                                case when graded_at is not null then 'Graded' when submitted_at is not null then 'Submitted' else 'Missing' end as Status, 
                                                null as gs_submission_id, s.id as canvas_submission_id, null as "Submission Time", submitted_at, a.due_at as due,
-                                               cast(sis_user_id as int) as student_id, null as gs_assignment_id, assignment_id as canvas_assignment_id, a.name, null as gs_student_id, null as gs_user_id, 
+                                               try_cast(sis_user_id as int) as student_id, null as gs_assignment_id, assignment_id as canvas_assignment_id, a.name, null as gs_student_id, null as gs_user_id, 
                                                null as gs_course_id, a.course_id as canvas_course_id, late, points_deducted, canvas_name as course_name, "Canvas" as source
                                                from canvas_submissions s join canvas_students st on s.user_id = st.id join canvas_assignments a on s.assignment_id = a.id""").df()
 
+        # st.write(submissions)
         submissions['Submission Time'] = submissions.apply(lambda x: datetime.strptime(x['submitted_at'], "%Y-%m-%dT%H:%M:%SZ") if not pd.isna(x['submitted_at']) else datetime.strptime(x['Submission Time'], '%Y-%m-%d %H:%M:%S %z') if not pd.isna(x['Submission Time']) else pd.NaT, axis=1)
 
         submissions['Submission Time'] = pd.to_datetime(submissions['Submission Time'], format='mixed', utc=True)
@@ -202,8 +212,10 @@ def get_aligned_submissions(include_gs: bool, include_canvas: bool) -> pd.DataFr
 
 
 def get_gs_extensions() -> pd.DataFrame:
+    # st.write(connection.execute("SELECT * FROM gs_extensions").df())
     return connection.execute("SELECT * FROM gs_extensions").df()
 
 def get_canvas_extensions() -> pd.DataFrame:
+    # st.write(connection.execute("SELECT * FROM canvas_extensions").df())
     return connection.execute("SELECT * FROM canvas_extensions").df()
     # return pd.read_csv('data/canvas_extensions.csv')

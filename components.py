@@ -322,7 +322,7 @@ def display_hw_totals(course: int = None) -> None:
                     'canvas_sid': None,
                     'canvas_id': None,
                     'sis_course_id': None,
-                    'Total Score':st.column_config.NumberColumn(step=1,format="$%d")
+                    'Total Score':st.column_config.NumberColumn(step=1,format="%d")
                     # 'Submission Time':st.column_config.DatetimeColumn(format="D MM YY, h:mm a")
                     })
 
